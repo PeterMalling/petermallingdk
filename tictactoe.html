@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tic Tac Toe</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 0.5rem;
+      letter-spacing: 2px;
+      color: #e94560;
+    }
+
+    #status {
+      font-size: 1.2rem;
+      margin-bottom: 1.5rem;
+      min-height: 1.6rem;
+      color: #a8dadc;
+    }
+
+    #board {
+      display: grid;
+      grid-template-columns: repeat(3, 110px);
+      grid-template-rows: repeat(3, 110px);
+      gap: 8px;
+    }
+
+    .cell {
+      background: #16213e;
+      border: 2px solid #0f3460;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      user-select: none;
+    }
+
+    .cell:hover:not(.taken) {
+      background: #0f3460;
+      transform: scale(1.05);
+    }
+
+    .cell.x { color: #e94560; }
+    .cell.o { color: #a8dadc; }
+
+    .cell.win {
+      background: #0f3460;
+      border-color: #e94560;
+      animation: pulse 0.4s ease;
+    }
+
+    @keyframes pulse {
+      0%   { transform: scale(1); }
+      50%  { transform: scale(1.1); }
+      100% { transform: scale(1); }
+    }
+
+    #controls {
+      margin-top: 2rem;
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    button {
+      padding: 0.6rem 1.4rem;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      background: #e94560;
+      color: #fff;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    button:hover {
+      background: #c73652;
+      transform: scale(1.04);
+    }
+
+    #mode-toggle {
+      background: #0f3460;
+    }
+
+    #mode-toggle:hover {
+      background: #1a4f8a;
+    }
+
+    #score {
+      margin-top: 1.5rem;
+      display: flex;
+      gap: 2rem;
+      font-size: 1rem;
+      color: #aaa;
+    }
+
+    #score span { color: #eee; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <h1>Tic Tac Toe</h1>
+  <div id="status">X's turn</div>
+  <div id="board"></div>
+
+  <div id="controls">
+    <button id="restart-btn">Restart</button>
+    <button id="mode-toggle">vs Computer</button>
+  </div>
+
+  <div id="score">
+    X wins: <span id="score-x">0</span>
+    &nbsp;|&nbsp;
+    Draws: <span id="score-d">0</span>
+    &nbsp;|&nbsp;
+    O wins: <span id="score-o">0</span>
+  </div>
+
+<script>
+  const boardEl   = document.getElementById('board');
+  const statusEl  = document.getElementById('status');
+  const restartBtn = document.getElementById('restart-btn');
+  const modeBtn   = document.getElementById('mode-toggle');
+  const scoreX    = document.getElementById('score-x');
+  const scoreO    = document.getElementById('score-o');
+  const scoreD    = document.getElementById('score-d');
+
+  const WINS = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+
+  let board, current, gameOver, vsComputer;
+  let scores = { X: 0, O: 0, D: 0 };
+  vsComputer = false;
+
+  function init() {
+    board    = Array(9).fill(null);
+    current  = 'X';
+    gameOver = false;
+    statusEl.textContent = "X's turn";
+    renderBoard();
+    if (vsComputer && current === 'O') computerMove();
+  }
+
+  function renderBoard() {
+    boardEl.innerHTML = '';
+    board.forEach((val, i) => {
+      const cell = document.createElement('div');
+      cell.className = 'cell' + (val ? ` ${val.toLowerCase()} taken` : '');
+      cell.textContent = val || '';
+      cell.addEventListener('click', () => handleClick(i));
+      boardEl.appendChild(cell);
+    });
+  }
+
+  function handleClick(i) {
+    if (gameOver || board[i]) return;
+    if (vsComputer && current === 'O') return;
+    place(i);
+    if (!gameOver && vsComputer && current === 'O') {
+      setTimeout(computerMove, 300);
+    }
+  }
+
+  function place(i) {
+    board[i] = current;
+    const winner = checkWinner();
+    if (winner) {
+      renderBoard();
+      highlightWin(winner.line);
+      statusEl.textContent = `${current} wins!`;
+      scores[current]++;
+      updateScore();
+      gameOver = true;
+    } else if (board.every(Boolean)) {
+      renderBoard();
+      statusEl.textContent = "It's a draw!";
+      scores.D++;
+      updateScore();
+      gameOver = true;
+    } else {
+      current = current === 'X' ? 'O' : 'X';
+      statusEl.textContent = `${current}'s turn`;
+      renderBoard();
+    }
+  }
+
+  function checkWinner() {
+    for (const line of WINS) {
+      const [a, b, c] = line;
+      if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+        return { player: board[a], line };
+      }
+    }
+    return null;
+  }
+
+  function highlightWin(line) {
+    const cells = boardEl.querySelectorAll('.cell');
+    line.forEach(i => cells[i].classList.add('win'));
+  }
+
+  function updateScore() {
+    scoreX.textContent = scores.X;
+    scoreO.textContent = scores.O;
+    scoreD.textContent = scores.D;
+  }
+
+  // Minimax AI
+  function computerMove() {
+    if (gameOver) return;
+    const best = minimax(board, 'O');
+    place(best.index);
+  }
+
+  function minimax(b, player) {
+    const winner = checkWinnerOn(b);
+    if (winner === 'O') return { score:  10 };
+    if (winner === 'X') return { score: -10 };
+    const empty = b.map((v,i) => v ? null : i).filter(i => i !== null);
+    if (!empty.length)  return { score: 0 };
+
+    const moves = empty.map(i => {
+      const copy = [...b];
+      copy[i] = player;
+      const result = minimax(copy, player === 'O' ? 'X' : 'O');
+      return { index: i, score: result.score };
+    });
+
+    return player === 'O'
+      ? moves.reduce((a, m) => m.score > a.score ? m : a)
+      : moves.reduce((a, m) => m.score < a.score ? m : a);
+  }
+
+  function checkWinnerOn(b) {
+    for (const [a, bI, c] of WINS) {
+      if (b[a] && b[a] === b[bI] && b[a] === b[c]) return b[a];
+    }
+    return null;
+  }
+
+  restartBtn.addEventListener('click', init);
+
+  modeBtn.addEventListener('click', () => {
+    vsComputer = !vsComputer;
+    modeBtn.textContent = vsComputer ? 'vs Human' : 'vs Computer';
+    init();
+  });
+
+  init();
+</script>
+</body>
+</html>

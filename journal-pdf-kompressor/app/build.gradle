@@ -1,0 +1,32 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'dk.petermalling.journalpdf'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'dk.petermalling.journalpdf'
+        minSdk 24
+        targetSdk 35
+        versionCode 3
+        versionName '1.0.2'
+    }
+
+    signingConfigs {
+        release {
+            storeFile file('../journalpdf-release.jks')
+            storePassword 'journalpdf2026'
+            keyAlias 'journalpdf'
+            keyPassword 'journalpdf2026'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+    }
+}
